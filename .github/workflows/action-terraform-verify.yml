@@ -1,41 +1,82 @@
-name: Terraform Format & Validation
-
+name: Validate Terraform Code
+ 
 on:
   pull_request:
     branches:
       - main
       - master
-
+ 
 permissions:
   id-token: write
   contents: read
-
+ 
 jobs:
-  terraform-check:
+  terraform-fmt:
     runs-on: ubuntu-latest
-    name: Terraform Format & Validation
+    name: Terraform Format Check
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
+        with:
+          fetch-depth: 2
+      - name: Fetch Changed Files
+        id: pr_files
+        uses: jitterbit/get-changed-files@v1
+        with:
+          format: "string-delimited"  # ✅ Fix: Use a supported format
+ 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.2.4
-
-      - name: Validate Terraform Formatting
+ 
+      - name: Debug - Print Changed Files
         run: |
-          set -e  # 🚀 Ensures the script exits immediately on failure
-          echo "🚀 Checking Terraform formatting..."
-          terraform fmt -check -recursive  # Checks formatting in all .tf files
-        shell: bash
-
+          echo "🔍 Changed files detected:"
+          echo "${{ steps.pr_files.outputs.added_modified }}"
+ 
+      - name: Validate Terraform Formatting (fmt)
+        run: |
+          set -e  # 🚀 Ensures script exits on failure
+          FAILED=0  # Track failures
+ 
+          # Ensure there are modified Terraform files
+          CHANGED_FILES="${{ steps.pr_files.outputs.added_modified }}"
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "✅ No Terraform files changed. Skipping fmt check."
+            exit 0
+          fi
+ 
+          # Check formatting for each changed .tf file
+          for changed_file in $CHANGED_FILES; do
+            if [[ "$changed_file" == *.tf ]]; then
+              echo "🚀 Checking terraform fmt on ${changed_file}..."
+              terraform fmt -check "$changed_file" || {
+                echo "❌ Terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
+                FAILED=1  # Mark failure
+              }
+            fi
+          done
+ 
+          # 🚨 If any file failed formatting, exit with error
+          if [[ $FAILED -ne 0 ]]; then
+            echo "🚨 Terraform format check failed! Stopping workflow."
+            exit 1  # 🚨 Hard stop for the workflow
+          fi
+ 
+  terraform-validate:
+    runs-on: ubuntu-latest
+    name: Terraform Validation
+    needs: terraform-fmt
+    if: needs.terraform-fmt.result == 'success'  # 🚀 Skip validation if fmt fails
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+ 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.2.4
+ 
       - name: Initialize Terraform
         run: terraform init
-
-      - name: Validate Terraform Configuration
-        run: |
-          set -e  # 🚀 Ensures the script exits immediately on failure
-          echo "🚀 Validating Terraform configuration..."
-          terraform validate
-        shell: bash
