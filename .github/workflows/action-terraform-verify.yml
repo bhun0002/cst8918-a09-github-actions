@@ -1,76 +1,65 @@
 name: Validate Terraform Code
- 
+
 on:
   pull_request:
     branches:
       - main
       - master
- 
+
 permissions:
   id-token: write
   contents: read
- 
+
 jobs:
   terraform-fmt:
     runs-on: ubuntu-latest
     name: Terraform Format Check
-    outputs:
-      CHECK_STATUS: "${{ env.CHECK_STATUS }}"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 2
-     
+      
       - name: Fetch Changed Files
         id: pr_files
         uses: jitterbit/get-changed-files@v1
         with:
           format: "space-delimited"
- 
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.2.4
- 
+
       - name: Validate Terraform Formatting (fmt)
         run: |
-          set +e
-          echo "CHECK_STATUS=0" >> $GITHUB_ENV
+          set -e  # 🚀 Ensures the script exits immediately on failure
           for changed_file in ${{ steps.pr_files.outputs.added_modified }}; do
             echo "Checking terraform fmt on ${changed_file}..."
             if [[ $changed_file == *.tf ]]; then
-              terraform fmt -check $changed_file
-              FMT_STATUS=$?
-              if [[ $FMT_STATUS -ne 0 ]]; then
+              terraform fmt -check $changed_file || {
                 echo "❌ terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
-                echo "CHECK_STATUS=1" >> $GITHUB_ENV
-                exit 1  # 🚨 Stops workflow on failure
-              fi
+                exit 1  # 🚨 Stops workflow immediately on failure
+              }
             fi
           done
- 
-      - name: Process Check
-        if: always()
-        run: exit $CHECK_STATUS
- 
+
   terraform-validate:
     runs-on: ubuntu-latest
     name: Terraform Validation
     needs: terraform-fmt
+    if: needs.terraform-fmt.result == 'success'  # 🚀 Skip validation if fmt fails
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
- 
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.2.4
- 
+
       - name: Initialize Terraform
         run: terraform init
- 
+
       - name: Validate Terraform Configuration
         run: terraform validate
- 
- 
