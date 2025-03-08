@@ -35,28 +35,23 @@ jobs:
 
       - name: Validate Terraform Formatting (fmt)
         run: |
-          set +e
           echo "CHECK_STATUS=0" >> $GITHUB_ENV
           for changed_file in ${{ steps.pr_files.outputs.added_modified }}; do
             echo "Checking terraform fmt on ${changed_file}..."
             if [[ $changed_file == *.tf ]]; then
-              terraform fmt -check $changed_file
-              FMT_STATUS=$?
-              if [[ $FMT_STATUS -ne 0 ]]; then
+              terraform fmt -check $changed_file || {
                 echo "❌ terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
                 echo "CHECK_STATUS=1" >> $GITHUB_ENV
-              fi
+                exit 1  # 🚨 Ensure failure stops the job
+              }
             fi
           done
-
-      - name: Process Check
-        if: always()
-        run: exit $CHECK_STATUS
 
   terraform-validate:
     runs-on: ubuntu-latest
     name: Terraform Validation
     needs: terraform-fmt
+    if: needs.terraform-fmt.result == 'success'  # 🚀 Only run if fmt passes
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -70,4 +65,6 @@ jobs:
         run: terraform init
 
       - name: Validate Terraform Configuration
-        run: terraform validate
+        run: |
+          set -e  # 🚨 Ensures terraform validate stops the workflow on errors
+          terraform validate
