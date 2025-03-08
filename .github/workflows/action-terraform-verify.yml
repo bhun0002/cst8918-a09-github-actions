@@ -29,7 +29,8 @@ jobs:
         run: |
           set -e  # 🚀 Ensures failure stops workflow
           terraform fmt -check
-          
+        working-directory: ./infrastructure  # ✅ Set correct directory if needed
+
   terraform-validate:
     runs-on: ubuntu-latest
     name: Terraform Validation
@@ -44,15 +45,21 @@ jobs:
         with:
           terraform_version: 1.2.4
 
+      - name: Debug: List Repository Files
+        run: ls -R  # 🔍 Check where Terraform files are located
+
       - name: Initialize Terraform
         run: terraform init
+        working-directory: ./infrastructure  # ✅ Use the correct directory
 
       - name: Validate Terraform Configuration
         run: |
           set -e  # 🚀 Ensures Terraform validation stops workflow
           terraform validate
+        working-directory: ./infrastructure  # ✅ Use the correct directory
 
-      - name: Terraform Plan  # 🔥 This ensures workflow fails if errors exist
+      - name: Terraform Plan  # 🔥 Ensures workflow fails if errors exist
         run: |
           set -e  # 🚀 Fails the workflow if plan detects issues
           terraform plan -out=tfplan
+        working-directory: ./infrastructure  # ✅ Use the correct directory
