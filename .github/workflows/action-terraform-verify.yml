@@ -11,6 +11,50 @@ permissions:
   contents: read
 
 jobs:
+
+  name: Terraform Format & Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform-check:
+    runs-on: ubuntu-latest
+    name: Terraform Format & Validation
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.2.4
+
+      - name: Validate Terraform Formatting
+        run: |
+          set -e  # 🚀 Ensures the script exits immediately on failure
+          echo "🚀 Checking Terraform formatting..."
+          terraform fmt -check -recursive  # Checks formatting in all .tf files
+        shell: bash
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Validate Terraform Configuration
+        run: |
+          set -e  # 🚀 Ensures the script exits immediately on failure
+          echo "🚀 Validating Terraform configuration..."
+          terraform validate
+        shell: bash
+
+        
   terraform-validate:
     runs-on: ubuntu-latest
     name: Terraform Validation
