@@ -25,11 +25,21 @@ jobs:
         with:
           terraform_version: 1.2.4
 
-      - name: Validate Terraform Formatting (fmt)
+      - name: Debug - List Repository Files
+        run: ls -R  # 🔍 Helps confirm where Terraform files exist
+
+      - name: Set Terraform Directory
+        id: find_tf_dir
         run: |
-          set -e  # 🚀 Ensures failure stops workflow
-          terraform fmt -check
-        working-directory: ./infrastructure  # ✅ Set correct directory if needed
+          if [ -d "./infrastructure" ]; then
+            echo "TF_DIR=./infrastructure" >> $GITHUB_ENV
+          else
+            echo "TF_DIR=." >> $GITHUB_ENV  # Default to root if ./infrastructure doesn't exist
+          fi
+
+      - name: Validate Terraform Formatting (fmt)
+        run: terraform fmt -check
+        working-directory: ${{ env.TF_DIR }}  # ✅ Ensures fmt runs in the correct directory
 
   terraform-validate:
     runs-on: ubuntu-latest
@@ -46,20 +56,16 @@ jobs:
           terraform_version: 1.2.4
 
       - name: Debug - List Repository Files
-        run: ls -R  # 🔍 Check where Terraform files are located
+        run: ls -R  # 🔍 Helps confirm where Terraform files exist
 
       - name: Initialize Terraform
         run: terraform init
-        working-directory: ./infrastructure  # ✅ Use the correct directory
+        working-directory: ${{ env.TF_DIR }}
 
       - name: Validate Terraform Configuration
-        run: |
-          set -e  # 🚀 Ensures Terraform validation stops workflow
-          terraform validate
-        working-directory: ./infrastructure  # ✅ Use the correct directory
+        run: terraform validate
+        working-directory: ${{ env.TF_DIR }}
 
       - name: Terraform Plan  # 🔥 Ensures workflow fails if errors exist
-        run: |
-          set -e  # 🚀 Fails the workflow if plan detects issues
-          terraform plan -out=tfplan
-        working-directory: ./infrastructure  # ✅ Use the correct directory
+        run: terraform plan -out=tfplan
+        working-directory: ${{ env.TF_DIR }}
