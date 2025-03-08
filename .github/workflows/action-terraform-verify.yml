@@ -45,7 +45,7 @@ jobs:
         with:
           terraform_version: 1.2.4
 
-      - name: Debug: List Repository Files
+      - name: Debug - List Repository Files
         run: ls -R  # 🔍 Check where Terraform files are located
 
       - name: Initialize Terraform
