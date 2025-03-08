@@ -23,7 +23,7 @@ jobs:
         id: pr_files
         uses: jitterbit/get-changed-files@v1
         with:
-          format: "string-delimited"  # ✅ Fix: Use a supported format
+          format: "space-delimited"  # ✅ Fix: Use a supported format
  
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
