@@ -24,7 +24,7 @@ jobs:
         id: pr_files
         uses: jitterbit/get-changed-files@v1
         with:
-          format: "newline-delimited"
+          format: "string-delimited"  # ✅ Fix: Use a supported format
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -49,16 +49,19 @@ jobs:
           fi
 
           # Check formatting for each changed .tf file
-          echo "$CHANGED_FILES" | while IFS= read -r changed_file; do
+          for changed_file in $CHANGED_FILES; do
             if [[ "$changed_file" == *.tf ]]; then
               echo "🚀 Checking terraform fmt on ${changed_file}..."
-              terraform fmt -check "$changed_file"
+              terraform fmt -check "$changed_file" || {
+                echo "❌ Terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
+                FAILED=1  # Mark failure
+              }
             fi
           done
 
           # 🚨 If any file failed formatting, exit with error
-          if [[ $? -ne 0 ]]; then
-            echo "❌ Terraform format check failed! Stopping workflow."
+          if [[ $FAILED -ne 0 ]]; then
+            echo "🚨 Terraform format check failed! Stopping workflow."
             exit 1  # 🚨 Hard stop for the workflow
           fi
 
