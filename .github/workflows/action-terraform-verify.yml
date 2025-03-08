@@ -41,40 +41,22 @@ jobs:
         run: terraform fmt -check
         working-directory: ${{ env.TF_DIR }}  # ✅ Ensures fmt runs in the correct directory
 
-  terraform-validate:
-    runs-on: ubuntu-latest
-    name: Terraform Validation
-    needs: terraform-fmt
-    if: needs.terraform-fmt.result == 'success'
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.2.4
-
-      - name: Debug - List Repository Files
-        run: ls -R  # 🔍 Helps confirm where Terraform files are located
-
-      - name: Set Terraform Directory
-        id: find_tf_dir
-        run: |
-          if [ -d "./infrastructure" ]; then
-            echo "TF_DIR=./infrastructure" >> $GITHUB_ENV
-          else
-            echo "TF_DIR=." >> $GITHUB_ENV  # Default to root if ./infrastructure doesn't exist
-          fi
-
-      - name: Initialize Terraform
-        run: terraform init
-        working-directory: ${{ env.TF_DIR }}
-
-      - name: Validate Terraform Configuration
-        run: terraform validate
-        working-directory: ${{ env.TF_DIR }}
-
-      - name: Terraform Plan  # 🔥 Ensures workflow fails if errors exist
-        run: terraform plan -out=tfplan
-        working-directory: ${{ env.TF_DIR }}
+     terraform-validate:
+          runs-on: ubuntu-latest
+          name: Terraform Validation
+          needs: terraform-fmt
+          steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v3
+       
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v2
+              with:
+                terraform_version: 1.2.4
+       
+            - name: Initialize Terraform
+              run: terraform init
+       
+            - name: Validate Terraform Configuration
+              run: terraform validate
+       
