@@ -14,20 +14,12 @@ jobs:
   terraform-fmt:
     runs-on: ubuntu-latest
     name: Terraform Format Check
-    outputs:
-      CHECK_STATUS: "${{ env.CHECK_STATUS }}"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 2
       
-      - name: Fetch Changed Files
-        id: pr_files
-        uses: jitterbit/get-changed-files@v1
-        with:
-          format: "space-delimited"
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -35,23 +27,14 @@ jobs:
 
       - name: Validate Terraform Formatting (fmt)
         run: |
-          echo "CHECK_STATUS=0" >> $GITHUB_ENV
-          for changed_file in ${{ steps.pr_files.outputs.added_modified }}; do
-            echo "Checking terraform fmt on ${changed_file}..."
-            if [[ $changed_file == *.tf ]]; then
-              terraform fmt -check $changed_file || {
-                echo "❌ terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
-                echo "CHECK_STATUS=1" >> $GITHUB_ENV
-                exit 1  # 🚨 Ensure failure stops the job
-              }
-            fi
-          done
-
+          set -e  # 🚀 Ensures failure stops workflow
+          terraform fmt -check
+          
   terraform-validate:
     runs-on: ubuntu-latest
     name: Terraform Validation
     needs: terraform-fmt
-    if: needs.terraform-fmt.result == 'success'  # 🚀 Only run if fmt passes
+    if: needs.terraform-fmt.result == 'success'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -66,5 +49,10 @@ jobs:
 
       - name: Validate Terraform Configuration
         run: |
-          set -e  # 🚨 Ensures terraform validate stops the workflow on errors
+          set -e  # 🚀 Ensures Terraform validation stops workflow
           terraform validate
+
+      - name: Terraform Plan  # 🔥 This ensures workflow fails if errors exist
+        run: |
+          set -e  # 🚀 Fails the workflow if plan detects issues
+          terraform plan -out=tfplan
