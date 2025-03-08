@@ -44,19 +44,19 @@ jobs:
 
           # Check formatting for each changed .tf file
           for changed_file in ${{ steps.pr_files.outputs.added_modified }}; do
-            if [[ "${changed_file}" == *.tf ]]; then
+            if [[ "${changed_file}" == *".tf" ]]; then
               echo "Checking terraform fmt on ${changed_file}..."
               terraform fmt -check "${changed_file}" || {
-                echo "❌ terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
+                echo "❌ Terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
                 FAILED=1  # Mark failure
               }
             fi
           done
 
-          # If any file failed formatting, exit with error
+          # 🚨 If any file failed formatting, exit with error
           if [[ $FAILED -ne 0 ]]; then
             echo "Terraform format check failed! Stopping workflow." 
-            exit 1  # 🚨 Stop the workflow
+            exit 1  # Stops the workflow immediately
           fi
 
   terraform-validate:
