@@ -24,12 +24,17 @@ jobs:
         id: pr_files
         uses: jitterbit/get-changed-files@v1
         with:
-          format: "space-delimited"
+          format: "newline-delimited"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.2.4
+
+      - name: Debug - Print Changed Files
+        run: |
+          echo "🔍 Changed files detected:"
+          echo "${{ steps.pr_files.outputs.added_modified }}"
 
       - name: Validate Terraform Formatting (fmt)
         run: |
@@ -37,26 +42,24 @@ jobs:
           FAILED=0  # Track failures
 
           # Ensure there are modified Terraform files
-          if [[ -z "${{ steps.pr_files.outputs.added_modified }}" ]]; then
-            echo "No Terraform files changed. Skipping fmt check."
+          CHANGED_FILES="${{ steps.pr_files.outputs.added_modified }}"
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "✅ No Terraform files changed. Skipping fmt check."
             exit 0
           fi
 
           # Check formatting for each changed .tf file
-          for changed_file in ${{ steps.pr_files.outputs.added_modified }}; do
-            if [[ "${changed_file}" == *".tf" ]]; then
-              echo "Checking terraform fmt on ${changed_file}..."
-              terraform fmt -check "${changed_file}" || {
-                echo "❌ Terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
-                FAILED=1  # Mark failure
-              }
+          echo "$CHANGED_FILES" | while IFS= read -r changed_file; do
+            if [[ "$changed_file" == *.tf ]]; then
+              echo "🚀 Checking terraform fmt on ${changed_file}..."
+              terraform fmt -check "$changed_file"
             fi
           done
 
           # 🚨 If any file failed formatting, exit with error
-          if [[ $FAILED -ne 0 ]]; then
-            echo "Terraform format check failed! Stopping workflow." 
-            exit 1  # Stops the workflow immediately
+          if [[ $? -ne 0 ]]; then
+            echo "❌ Terraform format check failed! Stopping workflow."
+            exit 1  # 🚨 Hard stop for the workflow
           fi
 
   terraform-validate:
