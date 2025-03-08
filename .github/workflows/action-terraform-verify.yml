@@ -33,16 +33,31 @@ jobs:
 
       - name: Validate Terraform Formatting (fmt)
         run: |
-          set -e  # 🚀 Ensures the script exits immediately on failure
+          set -e  # 🚀 Ensures script exits on failure
+          FAILED=0  # Track failures
+
+          # Ensure there are modified Terraform files
+          if [[ -z "${{ steps.pr_files.outputs.added_modified }}" ]]; then
+            echo "No Terraform files changed. Skipping fmt check."
+            exit 0
+          fi
+
+          # Check formatting for each changed .tf file
           for changed_file in ${{ steps.pr_files.outputs.added_modified }}; do
-            echo "Checking terraform fmt on ${changed_file}..."
-            if [[ $changed_file == *.tf ]]; then
-              terraform fmt -check $changed_file || {
+            if [[ "${changed_file}" == *.tf ]]; then
+              echo "Checking terraform fmt on ${changed_file}..."
+              terraform fmt -check "${changed_file}" || {
                 echo "❌ terraform fmt failed - ${changed_file}" >> $GITHUB_STEP_SUMMARY
-                exit 1  # 🚨 Stops workflow immediately on failure
+                FAILED=1  # Mark failure
               }
             fi
           done
+
+          # If any file failed formatting, exit with error
+          if [[ $FAILED -ne 0 ]]; then
+            echo "Terraform format check failed! Stopping workflow." 
+            exit 1  # 🚨 Stop the workflow
+          fi
 
   terraform-validate:
     runs-on: ubuntu-latest
