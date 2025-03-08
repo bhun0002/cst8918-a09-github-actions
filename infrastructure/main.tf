@@ -16,7 +16,7 @@ provider "azurerm" {
 resource "azurerm_resource_group" "bhun0002" {
   name     = "bhun0002-resources"
   location = "East US"
-Error  11111
+Error  11111111
  
 resource "azurerm_storage_account" "bhun0002" {
   name                     = "bhun0002storacc"
