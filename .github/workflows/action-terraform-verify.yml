@@ -56,7 +56,16 @@ jobs:
           terraform_version: 1.2.4
 
       - name: Debug - List Repository Files
-        run: ls -R  # 🔍 Helps confirm where Terraform files exist
+        run: ls -R  # 🔍 Helps confirm where Terraform files are located
+
+      - name: Set Terraform Directory
+        id: find_tf_dir
+        run: |
+          if [ -d "./infrastructure" ]; then
+            echo "TF_DIR=./infrastructure" >> $GITHUB_ENV
+          else
+            echo "TF_DIR=." >> $GITHUB_ENV  # Default to root if ./infrastructure doesn't exist
+          fi
 
       - name: Initialize Terraform
         run: terraform init
