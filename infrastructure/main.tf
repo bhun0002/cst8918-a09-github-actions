@@ -24,3 +24,4 @@ resource "azurerm_storage_account" "bhun0002" {
   location                 = azurerm_resource_group.bhun0002.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
+}
